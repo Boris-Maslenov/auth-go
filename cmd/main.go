@@ -13,6 +13,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
+const jwtSecret = "hello_go"
+
 func main() {
 	// todo: брать данные из сonfig env
 	db, err := sql.Open("postgres", "host=127.0.0.1 port=5432 user=postgres dbname=users_db sslmode=disable password=73007300")
@@ -31,7 +33,7 @@ func main() {
 	hasher := hash.NewSHA1Hasher("Go1")
 
 	usersRepo := psql.NewUsers(db)
-	authService := service.NewAuthService(hasher, usersRepo)
+	authService := service.NewAuthService(hasher, usersRepo, jwtSecret)
 	authHandler := auth.NewHandler(authService)
 
 	router := server.NewRouter(authHandler)

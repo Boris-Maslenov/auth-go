@@ -2,7 +2,6 @@ package psql
 
 import (
 	"database/sql"
-	"fmt"
 )
 
 type Users struct {
@@ -10,17 +9,23 @@ type Users struct {
 }
 
 func (r *Users) Create(email, name, hashPassword string) error {
-
 	var id int64
 	// res, err := r.db.Exec("INSERT INTO users (email, name, password) VALUES ($1, $2, $3)", a, b, c)
 	err := r.db.QueryRow("INSERT INTO users (email, name, password) VALUES ($1, $2, $3) RETURNING id", email, name, hashPassword).Scan(&id)
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("Новый пользователь успешно зареган c id: %d \n", id)
-
 	return nil
+}
+
+func (r *Users) GetByCredentials(email, hashPassword string) (string, error) {
+	var id string
+	err := r.db.QueryRow("SELECT id FROM users WHERE email=$1 AND password=$2", email, hashPassword).Scan(&id)
+	if err != nil {
+		return "", err
+	}
+
+	return id, nil
 }
 
 func NewUsers(db *sql.DB) *Users {
