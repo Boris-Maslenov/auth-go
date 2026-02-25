@@ -4,11 +4,14 @@ import (
 	"auth-test/internal/repository/psql"
 	"auth-test/internal/service"
 	"auth-test/internal/transport/http/auth"
+	"auth-test/internal/transport/http/middleware"
 	"auth-test/internal/transport/http/server"
+	"auth-test/internal/transport/http/user"
 	"auth-test/pkg/hash"
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
 
 	_ "github.com/lib/pq"
 )
@@ -31,13 +34,18 @@ func main() {
 	fmt.Println("DB CONNECTED")
 
 	hasher := hash.NewSHA1Hasher("Go1")
-
 	usersRepo := psql.NewUsers(db)
+
 	authService := service.NewAuthService(hasher, usersRepo, jwtSecret)
+	authMW := middleware.Auth(authService)
+
 	authHandler := auth.NewHandler(authService)
 
-	router := server.NewRouter(authHandler)
-	httpServer := server.NewServer(":80", router)
+	mux := http.NewServeMux()
+	auth.RegisterAuthRoutes(mux, authHandler)
+	user.RegisterUserRoutes(mux, authMW)
+
+	httpServer := server.NewServer(":80", mux)
 	err = httpServer.ListenAndServe()
 	if err != nil {
 		log.Fatal(err.Error())
