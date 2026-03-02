@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -9,7 +10,8 @@ import (
 
 type UseCase interface {
 	SignUp(email, login, password string) error
-	SignIn(login, password string) (string, error)
+	SignIn(login, password string) (string, string, error)
+	Refresh(token string) (string, string, error)
 }
 
 type Handler struct {
@@ -74,18 +76,44 @@ func (h *Handler) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.useCase.SignIn(reqInput.Email, reqInput.Password)
+	accessToken, refreshToken, err := h.useCase.SignIn(reqInput.Email, reqInput.Password)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	res, err := json.Marshal(map[string]string{"token": token})
+	res, err := json.Marshal(map[string]string{"token": accessToken})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	w.Header().Set("Set-Cookie", fmt.Sprintf("refresh-token=%s; HttpOnly", refreshToken))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(res)
+}
+
+func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("refresh-token")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	accessToken, refreshToken, err := h.useCase.Refresh(cookie.Value)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	res, err := json.Marshal(map[string]string{"token": accessToken})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Set-Cookie", fmt.Sprintf("refresh-token=%s; HttpOnly", refreshToken))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(res)

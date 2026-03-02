@@ -34,11 +34,11 @@ func main() {
 	fmt.Println("DB CONNECTED")
 
 	hasher := hash.NewSHA1Hasher("Go1")
+
 	usersRepo := psql.NewUsers(db)
-
-	authService := service.NewAuthService(hasher, usersRepo, jwtSecret)
+	tokensRepo := psql.NewTokens(db)
+	authService := service.NewAuthService(usersRepo, tokensRepo, hasher, jwtSecret)
 	authMW := middleware.Auth(authService)
-
 	authHandler := auth.NewHandler(authService)
 
 	mux := http.NewServeMux()

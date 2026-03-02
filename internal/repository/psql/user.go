@@ -18,11 +18,11 @@ func (r *Users) Create(email, name, hashPassword string) error {
 	return nil
 }
 
-func (r *Users) GetByCredentials(email, hashPassword string) (string, error) {
-	var id string
+func (r *Users) GetByCredentials(email, hashPassword string) (int64, error) {
+	var id int64
 	err := r.db.QueryRow("SELECT id FROM users WHERE email=$1 AND password=$2", email, hashPassword).Scan(&id)
 	if err != nil {
-		return "", err
+		return id, err
 	}
 
 	return id, nil
