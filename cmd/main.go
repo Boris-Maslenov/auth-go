@@ -1,6 +1,7 @@
 package main
 
 import (
+	"auth-test/internal/config"
 	"auth-test/internal/repository/psql"
 	"auth-test/internal/service"
 	"auth-test/internal/transport/http/auth"
@@ -19,8 +20,8 @@ import (
 const jwtSecret = "hello_go"
 
 func main() {
-	// todo: брать данные из сonfig env
-	db, err := sql.Open("postgres", "host=127.0.0.1 port=5432 user=postgres dbname=users_db sslmode=disable password=73007300")
+	config := config.Load()
+	db, err := sql.Open("postgres", fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=%s password=%s", config.Host, config.Port, config.Username, config.DBName, config.SSLMode, config.Password))
 	if err != nil {
 		log.Fatal(err.Error())
 	}
